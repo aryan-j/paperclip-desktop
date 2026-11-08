@@ -13,7 +13,7 @@ files:
 # Auto-update via GitHub Releases
 publish:
   provider: github
-  owner: aronprins
+  owner: aryan-j
   repo: paperclip-desktop
   releaseType: release
 
@@ -50,6 +50,10 @@ extraResources:
   # Bundled Node.js binary (arch-specific, selected at build time)
   - from: "build/node-bin/${os}-${arch}"
     to: app-server/node-bin
+    filter:
+      - "**/*"
+  - from: "build/macos-native/${arch}"
+    to: app-server/macos-native
     filter:
       - "**/*"
 

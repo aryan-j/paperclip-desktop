@@ -42,6 +42,7 @@ import {
   shouldOpenExternally,
 } from "./connection/window-policy";
 import { LOCAL_PROFILE_ID } from "./connection/types";
+import { attachPaperclipNativeToolbar } from "./macos-native-toolbar";
 import type {
   ConnectionMode,
   ConnectionProfile,
@@ -469,20 +470,24 @@ function startServer(port: number): ChildProcess {
   console.log(`Using PAPERCLIP_HOME: ${paperclipHome}`);
 
   const child = app.isPackaged
-    ? spawn(findNodeBinary(), [path.join(root, "server", "dist", "index.js")], {
-        cwd: root,
-        env: {
-          ...process.env,
-          PATH: enrichedPath,
-          NODE_ENV: "production",
-          PORT: String(port),
-          PAPERCLIP_HOME: paperclipHome,
-          PAPERCLIP_TEAMS_CATALOG_DIR: teamsCatalogDir,
-          PAPERCLIP_MIGRATION_AUTO_APPLY: "true",
+    ? spawn(
+        findNodeBinary(),
+        [path.join(root, "server", "node_modules", "@paperclipai", "server", "dist", "index.js")],
+        {
+          cwd: root,
+          env: {
+            ...process.env,
+            PATH: enrichedPath,
+            NODE_ENV: "production",
+            PORT: String(port),
+            PAPERCLIP_HOME: paperclipHome,
+            PAPERCLIP_TEAMS_CATALOG_DIR: teamsCatalogDir,
+            PAPERCLIP_MIGRATION_AUTO_APPLY: "true",
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+          detached: !isWindows,
         },
-        stdio: ["ignore", "pipe", "pipe"],
-        detached: !isWindows,
-      })
+      )
     : spawn("node", [path.join(root, "node_modules", "@paperclipai", "server", "dist", "index.js")], {
         cwd: root,
         env: {
@@ -937,6 +942,12 @@ function createMainWindow(input: {
     title: "Paperclip",
     show: false,
     backgroundColor: "#0a0a0a",
+    ...(process.platform === "darwin" && input.mode === "local_embedded"
+      ? {
+          titleBarStyle: "hidden" as const,
+          trafficLightPosition: { x: 12, y: 12 },
+        }
+      : {}),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -948,7 +959,14 @@ function createMainWindow(input: {
 
   applyWindowPolicy(win, input.allowedOrigin);
 
+  if (input.mode === "local_embedded" && process.platform === "darwin") {
+    win.on("page-title-updated", (event) => event.preventDefault());
+  }
+
   win.once("ready-to-show", () => {
+    if (input.mode === "local_embedded") {
+      attachPaperclipNativeToolbar(win);
+    }
     win.show();
   });
 

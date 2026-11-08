@@ -59,7 +59,15 @@ console.log(
 const platform = process.platform;
 const nodePlatform = platform === "win32" ? "win32" : platform;
 const ebPlatform = platform === "darwin" ? "mac" : platform === "win32" ? "win" : "linux";
-const targetArches = platform === "darwin" ? ["x64", "arm64"] : ["x64"];
+const availableArches = platform === "darwin" ? ["x64", "arm64"] : ["x64"];
+const archOptionIndex = process.argv.indexOf("--arch");
+const requestedArch = archOptionIndex >= 0 ? process.argv[archOptionIndex + 1] : null;
+if (requestedArch && !availableArches.includes(requestedArch)) {
+  throw new Error(
+    `Unsupported architecture '${requestedArch}' for ${platform}. Expected: ${availableArches.join(", ")}.`,
+  );
+}
+const targetArches = requestedArch ? [requestedArch] : availableArches;
 
 rmSync(stagingRootDir, { recursive: true, force: true });
 rmSync(bundleRootDir, { recursive: true, force: true });
@@ -160,25 +168,18 @@ function dependencyDir(nodeModulesDir, dependency) {
   return path.join(nodeModulesDir, ...dependency.split("/"));
 }
 
-function promoteServerRuntimeDependencies(serverPkgDir, bundleServerDir) {
+function validateServerRuntimeDependencies(serverPkgDir, stagingNodeModulesDir) {
   const serverPackageJson = JSON.parse(
     readFileSync(path.join(serverPkgDir, "package.json"), "utf8"),
   );
   const dependencies = Object.keys(serverPackageJson.dependencies ?? {}).sort();
   const serverNodeModules = path.join(serverPkgDir, "node_modules");
-  const bundleNodeModules = path.join(bundleServerDir, "node_modules");
-
-  // The packaged server is relocated from node_modules/@paperclipai/server to
-  // the bundle root. Recreate the module lookup environment it had before the
-  // move: hoisted packages are already present, and nested packages must
-  // overlay them because npm nested those versions intentionally.
-  if (existsSync(serverNodeModules)) {
-    cpSync(serverNodeModules, bundleNodeModules, { recursive: true, force: true });
-  }
 
   const missing = dependencies.filter((dependency) => {
-    const target = dependencyDir(bundleNodeModules, dependency);
-    return !existsSync(path.join(target, "package.json"));
+    const nested = dependencyDir(serverNodeModules, dependency);
+    const hoisted = dependencyDir(stagingNodeModulesDir, dependency);
+    return !existsSync(path.join(nested, "package.json"))
+      && !existsSync(path.join(hoisted, "package.json"));
   });
   if (missing.length > 0) {
     throw new Error(
@@ -187,7 +188,7 @@ function promoteServerRuntimeDependencies(serverPkgDir, bundleServerDir) {
   }
 
   console.log(
-    `[prepare-server] Promoted the nested server dependency environment for root resolution (${dependencies.length} direct dependencies).`,
+    `[prepare-server] Validated the preserved npm dependency tree (${dependencies.length} direct server dependencies).`,
   );
 }
 
@@ -245,7 +246,7 @@ for (const arch of targetArches) {
   }
 
   cpSync(path.join(stagingDir, "node_modules"), path.join(bundleServerDir, "node_modules"), { recursive: true });
-  promoteServerRuntimeDependencies(serverPkgDir, bundleServerDir);
+  validateServerRuntimeDependencies(serverPkgDir, path.join(stagingDir, "node_modules"));
   rmSync(path.join(bundleServerDir, "node_modules", ".bin"), { recursive: true, force: true });
 
   if (platform === "darwin") {

@@ -1,16 +1,17 @@
 {
   "name": "paperclip-desktop",
-  "version": "3.2.15",
+  "version": "3.2.16",
   "private": true,
   "description": "Paperclip desktop application \u2014 Electron wrapper for the Paperclip server",
   "author": {
     "name": "Aron Prins"
   },
-  "homepage": "https://github.com/aronprins/paperclip-desktop",
+  "homepage": "https://github.com/aryan-j/paperclip-desktop",
   "main": "dist/main.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "tsc",
+    "build": "tsc && node scripts/build-macos-native.mjs",
+    "build:mac-native": "node scripts/build-macos-native.mjs",
     "start": "electron dist/main.js",
     "prepare-server": "node scripts/prepare-server.mjs",
     "build-ui": "node scripts/build-ui.mjs",
@@ -24,7 +25,7 @@
     "release:mac:local:x64": "node scripts/release-macos-local.mjs --arch x64",
     "release:mac:local:arm64": "node scripts/release-macos-local.mjs --arch arm64",
     "release:mac:notarize:prebuilt": "node scripts/notarize-prebuilt-macos.mjs",
-    "pack": "pnpm build && pnpm prepare-server && pnpm build-ui && electron-builder --dir",
+    "pack": "node scripts/pack-local.mjs",
     "dist": "pnpm build && pnpm prepare-server && pnpm build-ui && electron-builder",
     "dist:mac": "node scripts/release-macos-local.mjs",
     "dist:win": "pnpm build && pnpm prepare-server && pnpm build-ui && electron-builder --win --publish never",
@@ -36,10 +37,11 @@
     "tree-kill": "^1.2.2"
   },
   "devDependencies": {
-    "@paperclipai/server": "2026.1001.0",
-    "@paperclipai/teams-catalog": "2026.824.0",
+    "@paperclipai/server": "2026.1106.0",
+    "@paperclipai/teams-catalog": "2026.1106.0",
     "electron": "^41.10.7",
     "electron-builder": "^26.15.7",
+    "node-gyp": "11.2.0",
     "typescript": "^5.7.3"
   },
   "pnpm": {

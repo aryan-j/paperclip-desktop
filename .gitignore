@@ -6,7 +6,10 @@ dist/
 build/server-bundle/
 build/server-staging/
 build/node-bin/
+build/macos-native/
 build/upstream-clone/
+native/macos/build/
+native/macos/swift-build/
 docs/development/paperclip/
 docs/mockups/chooser-variations.html
 

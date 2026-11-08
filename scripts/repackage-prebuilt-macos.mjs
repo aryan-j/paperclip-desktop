@@ -13,7 +13,7 @@ const rootPackageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"
 const PRODUCT_NAME = "Paperclip Desktop";
 const APP_ID = "com.paperclipai.app";
 const COPYRIGHT = "Copyright © 2026 Aron Prins";
-const OWNER = "aronprins";
+const OWNER = "aryan-j";
 const REPO = "paperclip-desktop";
 const args = process.argv.slice(2);
 

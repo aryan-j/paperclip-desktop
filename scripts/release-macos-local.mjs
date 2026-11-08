@@ -25,8 +25,8 @@ const rootPackageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"
 const DEFAULT_ARCHES = ["x64", "arm64"];
 const PRODUCT_NAME = "Paperclip Desktop";
 const APP_ID = "com.paperclipai.app";
-const COPYRIGHT = "Copyright © 2026 Aron Prins";
-const PUBLISH_OWNER = "aronprins";
+const COPYRIGHT = "Copyright © 2026 Aron Prins and Paperclip Desktop contributors";
+const PUBLISH_OWNER = "aryan-j";
 const PUBLISH_REPO = "paperclip-desktop";
 
 const args = process.argv.slice(2);
@@ -304,6 +304,11 @@ function buildStageConfig(arch) {
         to: "app-server/node-bin",
         filter: ["**/*"],
       },
+      {
+        from: "app-server/macos-native",
+        to: "app-server/macos-native",
+        filter: ["**/*"],
+      },
     ],
     publish: {
       provider: "github",
@@ -376,18 +381,24 @@ function stageRuntimeFiles(stageAppDir, arch, stageRoot) {
   const buildResourcesDir = join(stageAppDir, "build");
   const stageServerDir = join(stageAppDir, "app-server", "server");
   const stageNodeDir = join(stageAppDir, "app-server", "node-bin");
+  const stageNativeDir = join(stageAppDir, "app-server", "macos-native");
 
   const desktopDistDir = join(projectRoot, "dist");
   const bundleServerDir = join(projectRoot, "build", "server-bundle", `mac-${arch}`, "server");
   const nodeRuntimeDir = join(projectRoot, "build", "node-bin", `mac-${arch}`);
+  const nativeRuntimeDir = join(projectRoot, "build", "macos-native", arch);
 
   assertExists(desktopDistDir, "Desktop build output");
   assertExists(bundleServerDir, `Server bundle for mac-${arch}`);
   assertExists(nodeRuntimeDir, `Node runtime for mac-${arch}`);
+  ensureDir(stageNativeDir);
 
   cpSync(desktopDistDir, join(stageAppDir, "dist"), { recursive: true });
   cpSync(bundleServerDir, stageServerDir, { recursive: true });
   cpSync(nodeRuntimeDir, stageNodeDir, { recursive: true });
+  if (existsSync(nativeRuntimeDir)) {
+    cpSync(nativeRuntimeDir, stageNativeDir, { recursive: true });
+  }
   relativizeCopiedSymlinks(stageServerDir, bundleServerDir, stageServerDir);
   pruneNodeBinShims(stageServerDir);
   removeBrokenSymlinks(stageServerDir);
